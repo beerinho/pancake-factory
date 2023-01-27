@@ -1,7 +1,6 @@
-import Component from '@glimmer/component';
-import { next } from '@ember/runloop';
+import { modifier } from 'ember-modifier';
 import * as THREE from 'three';
-import { AxisGridHelper } from '../utils/axis-grid-helper'
+import { AxisGridHelper } from '../utils/axis-grid-helper';
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 const gui = new GUI();
@@ -14,7 +13,7 @@ const objects = [];
 
 // camera
 const fov = 40;
-const aspect = 2;  // the canvas default
+const aspect = 2; // the canvas default
 const near = 0.1;
 const far = 1000;
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
@@ -27,14 +26,14 @@ cameraHolder.add(camera);
 // scene
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xaaaaaa);
-scene.add(cameraHolder)
+scene.add(cameraHolder);
 
 // lights
 {
-  const color = 0xFFFFFF;
+  const color = 0xffffff;
   const intensity = 1;
   const light = new THREE.DirectionalLight(color, intensity);
-  light.position.set(-3, 3, 2)
+  light.position.set(-3, 3, 2);
   light.castShadow = true;
   scene.add(light);
 }
@@ -42,8 +41,8 @@ scene.add(cameraHolder)
 function resizeRendererToDisplaySize(renderer) {
   const canvas = renderer.domElement;
   const pixelRatio = window.devicePixelRatio;
-  const width = canvas.clientWidth * pixelRatio | 0;
-  const height = canvas.clientHeight * pixelRatio | 0;
+  const width = (canvas.clientWidth * pixelRatio) | 0;
+  const height = (canvas.clientHeight * pixelRatio) | 0;
   const needResize = canvas.width !== width || canvas.height !== height;
   if (needResize) {
     renderer.setSize(width, height, false);
@@ -59,7 +58,7 @@ const render = (time) => {
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
   }
-  cameraHolder.rotation.y = time / 2
+  cameraHolder.rotation.y = time / 2;
   objects.forEach((obj) => {
     obj.rotation.y = time;
   });
@@ -67,22 +66,27 @@ const render = (time) => {
   renderer.render(scene, camera);
 
   requestAnimationFrame(render);
-}
+};
 
 function createCar() {
+  console.log('creating car')
   const car = new THREE.Group();
   scene.add(car);
 
-  const bodyGeometry = new THREE.BoxGeometry(10, 2, 5)
-  const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xce2f2d, emissive: 0xce2f2d, emissiveIntensity: 0.3 });
+  const bodyGeometry = new THREE.BoxGeometry(10, 2, 5);
+  const bodyMaterial = new THREE.MeshLambertMaterial({
+    color: 0xce2f2d,
+    emissive: 0xce2f2d,
+    emissiveIntensity: 0.3,
+  });
   const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
   bodyMesh.castShadow = true;
   bodyMesh.receiveShadow = true;
-  car.add(bodyMesh)
+  car.add(bodyMesh);
 
   // create cabin
-  const cabinY = 1.9
-  const cabinGeometry = new THREE.BoxGeometry(5, cabinY, 4.5)
+  const cabinY = 1.9;
+  const cabinGeometry = new THREE.BoxGeometry(5, cabinY, 4.5);
   const carFrontTexture = getCarFrontTexture();
 
   const carBackTexture = getCarFrontTexture();
@@ -95,12 +99,40 @@ function createCar() {
   carLeftSideTexture.flipY = false;
 
   const cabin = new THREE.Mesh(cabinGeometry, [
-    new THREE.MeshLambertMaterial({ map: carFrontTexture, emissive: 0xFFFFFF, emissiveMap: carFrontTexture, emissiveIntensity: 0.3 }),
-    new THREE.MeshLambertMaterial({ map: carBackTexture, emissive: 0xFFFFFF, emissiveMap: carFrontTexture, emissiveIntensity: 0.3 }),
-    new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: 0xFFFFFF, emissiveIntensity: 0.3 }), // top
-    new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: 0xFFFFFF, emissiveIntensity: 0.3 }), // bottom
-    new THREE.MeshLambertMaterial({ map: carRightSideTexture, emissive: 0xFFFFFF, emissiveMap: carRightSideTexture, emissiveIntensity: 0.3 }),
-    new THREE.MeshLambertMaterial({ map: carLeftSideTexture, emissive: 0xFFFFFF, emissiveMap: carLeftSideTexture, emissiveIntensity: 0.3 }),
+    new THREE.MeshLambertMaterial({
+      map: carFrontTexture,
+      emissive: 0xffffff,
+      emissiveMap: carFrontTexture,
+      emissiveIntensity: 0.3,
+    }),
+    new THREE.MeshLambertMaterial({
+      map: carBackTexture,
+      emissive: 0xffffff,
+      emissiveMap: carFrontTexture,
+      emissiveIntensity: 0.3,
+    }),
+    new THREE.MeshLambertMaterial({
+      color: 0xffffff,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.3,
+    }), // top
+    new THREE.MeshLambertMaterial({
+      color: 0xffffff,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.3,
+    }), // bottom
+    new THREE.MeshLambertMaterial({
+      map: carRightSideTexture,
+      emissive: 0xffffff,
+      emissiveMap: carRightSideTexture,
+      emissiveIntensity: 0.3,
+    }),
+    new THREE.MeshLambertMaterial({
+      map: carLeftSideTexture,
+      emissive: 0xffffff,
+      emissiveMap: carLeftSideTexture,
+      emissiveIntensity: 0.3,
+    }),
   ]);
   cabin.position.x = 1;
   cabin.position.y = cabinY;
@@ -109,39 +141,39 @@ function createCar() {
   car.add(cabin);
 
   // create tyres
-  createTyre(car, -3.5, 2.3)
-  createTyre(car, -3.5, -2.3)
-  createTyre(car, 3.5, 2.3)
-  createTyre(car, 3.5, -2.3)
+  createTyre(car, -3.5, 2.3);
+  createTyre(car, -3.5, -2.3);
+  createTyre(car, 3.5, 2.3);
+  createTyre(car, 3.5, -2.3);
 
   makeAxisGrid(car, 'car', 25);
 }
 
 function getCarFrontTexture() {
-  const canvas = document.createElement("canvas");
+  const canvas = document.createElement('canvas');
   canvas.width = 120;
   canvas.height = 60;
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext('2d');
 
-  context.fillStyle = "#ffffff";
+  context.fillStyle = '#ffffff';
   context.fillRect(0, 0, 120, 60);
 
-  context.fillStyle = "#000000";
+  context.fillStyle = '#000000';
   context.fillRect(10, 10, 100, 50);
 
   return new THREE.CanvasTexture(canvas);
 }
 
 function getCarSideTexture() {
-  const canvas = document.createElement("canvas");
+  const canvas = document.createElement('canvas');
   canvas.width = 200;
   canvas.height = 60;
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext('2d');
 
-  context.fillStyle = "#ffffff";
+  context.fillStyle = '#ffffff';
   context.fillRect(0, 0, 200, 60);
 
-  context.fillStyle = "#000000";
+  context.fillStyle = '#000000';
   context.fillRect(10, 10, 60, 50);
   context.fillRect(80, 10, 110, 50);
 
@@ -149,16 +181,15 @@ function getCarSideTexture() {
 }
 
 function createTyre(car, x, z) {
-  const tyreGeometry = new THREE.CylinderGeometry(
-    1, 1, 0.75, 4);
+  const tyreGeometry = new THREE.CylinderGeometry(1, 1, 0.75, 4);
   const tyreMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
   const tyreMesh = new THREE.Mesh(tyreGeometry, tyreMaterial);
-  tyreMesh.position.y = -1
-  tyreMesh.position.x = x
-  tyreMesh.position.z = z
-  tyreMesh.rotation.x = 1.57
+  tyreMesh.position.y = -1;
+  tyreMesh.position.x = x;
+  tyreMesh.position.z = z;
+  tyreMesh.rotation.x = 1.57;
   car.add(tyreMesh);
-  objects.push(tyreMesh)
+  objects.push(tyreMesh);
 }
 
 function makeAxisGrid(node, label, units) {
@@ -166,25 +197,14 @@ function makeAxisGrid(node, label, units) {
   gui.add(helper, 'visible').name(label);
 }
 
-export default class SceneComponent extends Component {
+export default modifier(function createScene(
+  element
+) {
+  renderer = new THREE.WebGLRenderer({ canvas: element });
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.render(scene, camera);
+  createCar();
+  render();
+}, { eager: false });
 
-  constructor() {
-    super(...arguments)
-    this.setupScene()
-  }
-
-  setupScene() {
-    // allow the DOM to render before trying to access the canvas
-    next(this, () => {
-      const canvas = document.querySelector('#scene')
-      renderer = new THREE.WebGLRenderer({ canvas });
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.render(scene, camera);
-      createCar()
-      render()
-    })
-  }
-
-
-}

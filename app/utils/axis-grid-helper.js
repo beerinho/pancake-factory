@@ -1,4 +1,3 @@
-
 import * as THREE from 'three';
 
 // Turns both axes and grid visible on/off
@@ -8,10 +7,9 @@ import * as THREE from 'three';
 // to look at.
 export class AxisGridHelper {
   constructor(node, units = 10) {
-
     const axes = new THREE.AxesHelper();
     axes.material.depthTest = false;
-    axes.renderOrder = 2;  // after the grid
+    axes.renderOrder = 2; // after the grid
     node.add(axes);
 
     const grid = new THREE.GridHelper(units, units);
