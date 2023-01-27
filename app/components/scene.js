@@ -9,24 +9,33 @@ const gui = new GUI();
 // renderer
 let renderer = null;
 
+// an array of objects whose rotation to update
+const objects = [];
+
 // camera
 const fov = 40;
 const aspect = 2;  // the canvas default
 const near = 0.1;
 const far = 1000;
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-camera.position.set(0, 50, 0);
-camera.up.set(0, 0, 1);
+camera.position.set(-10, 7.5, 20);
+camera.up.set(0, 1, 0);
 camera.lookAt(0, 0, 0);
+const cameraHolder = new THREE.Object3D();
+cameraHolder.add(camera);
 
 // scene
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xaaaaaa);
+scene.add(cameraHolder)
 
 // lights
 {
   const color = 0xFFFFFF;
-  const intensity = 3;
-  const light = new THREE.PointLight(color, intensity);
+  const intensity = 1;
+  const light = new THREE.DirectionalLight(color, intensity);
+  light.position.set(-3, 3, 2)
+  light.castShadow = true;
   scene.add(light);
 }
 
@@ -43,14 +52,14 @@ function resizeRendererToDisplaySize(renderer) {
 }
 
 const render = (time) => {
-  time *= 0.0005;  // convert time to seconds
+  time *= 0.0005;
 
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement;
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
   }
-
+  cameraHolder.rotation.y = time / 2
   objects.forEach((obj) => {
     obj.rotation.y = time;
   });
@@ -60,57 +69,102 @@ const render = (time) => {
   requestAnimationFrame(render);
 }
 
-// an array of objects whose rotation to update
-const objects = [];
+function createCar() {
+  const car = new THREE.Group();
+  scene.add(car);
 
-const solarSystem = new THREE.Object3D();
-scene.add(solarSystem);
-objects.push(solarSystem);
+  const bodyGeometry = new THREE.BoxGeometry(10, 2, 5)
+  const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xce2f2d, emissive: 0xce2f2d, emissiveIntensity: 0.3 });
+  const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+  bodyMesh.castShadow = true;
+  bodyMesh.receiveShadow = true;
+  car.add(bodyMesh)
 
-const earthOrbit = new THREE.Object3D();
-earthOrbit.position.x = 10;
-solarSystem.add(earthOrbit);
-objects.push(earthOrbit);
+  // create cabin
+  const cabinY = 1.9
+  const cabinGeometry = new THREE.BoxGeometry(5, cabinY, 4.5)
+  const carFrontTexture = getCarFrontTexture();
 
-// use just one sphere for everything
-const radius = 1;
-const widthSegments = 6;
-const heightSegments = 6;
-const sphereGeometry = new THREE.SphereGeometry(
-  radius, widthSegments, heightSegments);
+  const carBackTexture = getCarFrontTexture();
 
-const sunMaterial = new THREE.MeshPhongMaterial({ emissive: 0xFFFF00 });
-const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
-sunMesh.scale.set(5, 5, 5);  // make the sun large
-solarSystem.add(sunMesh);
-objects.push(sunMesh);
+  const carRightSideTexture = getCarSideTexture();
 
-const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x2233FF, emissive: 0x112244 });
-const earthMesh = new THREE.Mesh(sphereGeometry, earthMaterial);
-earthOrbit.add(earthMesh)
-objects.push(earthMesh);
+  const carLeftSideTexture = getCarSideTexture();
+  carLeftSideTexture.center = new THREE.Vector2(0.5, 0.5);
+  carLeftSideTexture.rotation = Math.PI;
+  carLeftSideTexture.flipY = false;
 
-const moonOrbit = new THREE.Object3D();
-moonOrbit.position.x = 2;
-earthOrbit.add(moonOrbit);
+  const cabin = new THREE.Mesh(cabinGeometry, [
+    new THREE.MeshLambertMaterial({ map: carFrontTexture, emissive: 0xFFFFFF, emissiveMap: carFrontTexture, emissiveIntensity: 0.3 }),
+    new THREE.MeshLambertMaterial({ map: carBackTexture, emissive: 0xFFFFFF, emissiveMap: carFrontTexture, emissiveIntensity: 0.3 }),
+    new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: 0xFFFFFF, emissiveIntensity: 0.3 }), // top
+    new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: 0xFFFFFF, emissiveIntensity: 0.3 }), // bottom
+    new THREE.MeshLambertMaterial({ map: carRightSideTexture, emissive: 0xFFFFFF, emissiveMap: carRightSideTexture, emissiveIntensity: 0.3 }),
+    new THREE.MeshLambertMaterial({ map: carLeftSideTexture, emissive: 0xFFFFFF, emissiveMap: carLeftSideTexture, emissiveIntensity: 0.3 }),
+  ]);
+  cabin.position.x = 1;
+  cabin.position.y = cabinY;
+  cabin.castShadow = true;
+  cabin.receiveShadow = true;
+  car.add(cabin);
 
-const moonMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x222222 });
-const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
-moonMesh.scale.set(.5, .5, .5);
-moonOrbit.add(moonMesh);
-objects.push(moonMesh);
+  // create tyres
+  createTyre(car, -3.5, 2.3)
+  createTyre(car, -3.5, -2.3)
+  createTyre(car, 3.5, 2.3)
+  createTyre(car, 3.5, -2.3)
+
+  makeAxisGrid(car, 'car', 25);
+}
+
+function getCarFrontTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 120;
+  canvas.height = 60;
+  const context = canvas.getContext("2d");
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, 120, 60);
+
+  context.fillStyle = "#000000";
+  context.fillRect(10, 10, 100, 50);
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+function getCarSideTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 200;
+  canvas.height = 60;
+  const context = canvas.getContext("2d");
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, 200, 60);
+
+  context.fillStyle = "#000000";
+  context.fillRect(10, 10, 60, 50);
+  context.fillRect(80, 10, 110, 50);
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+function createTyre(car, x, z) {
+  const tyreGeometry = new THREE.CylinderGeometry(
+    1, 1, 0.75, 4);
+  const tyreMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+  const tyreMesh = new THREE.Mesh(tyreGeometry, tyreMaterial);
+  tyreMesh.position.y = -1
+  tyreMesh.position.x = x
+  tyreMesh.position.z = z
+  tyreMesh.rotation.x = 1.57
+  car.add(tyreMesh);
+  objects.push(tyreMesh)
+}
 
 function makeAxisGrid(node, label, units) {
   const helper = new AxisGridHelper(node, units);
   gui.add(helper, 'visible').name(label);
 }
-
-makeAxisGrid(solarSystem, 'solarSystem', 25);
-makeAxisGrid(sunMesh, 'sunMesh');
-makeAxisGrid(earthOrbit, 'earthOrbit');
-makeAxisGrid(earthMesh, 'earthMesh');
-makeAxisGrid(moonOrbit, 'moonOrbit');
-makeAxisGrid(moonMesh, 'moonMesh');
 
 export default class SceneComponent extends Component {
 
@@ -119,13 +173,15 @@ export default class SceneComponent extends Component {
     this.setupScene()
   }
 
-
   setupScene() {
     // allow the DOM to render before trying to access the canvas
     next(this, () => {
       const canvas = document.querySelector('#scene')
       renderer = new THREE.WebGLRenderer({ canvas });
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.render(scene, camera);
+      createCar()
       render()
     })
   }
